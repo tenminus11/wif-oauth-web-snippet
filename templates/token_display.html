@@ -1,0 +1,26 @@
+<html>
+<head><title>Access Token</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+</style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-lg shadow-md max-w-lg w-full">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800 text-center">OAuth Successful!</h1>
+        <p class="text-gray-700 mb-4">Here are the details of your access token:</p>
+        <div class="bg-gray-50 p-4 rounded-md border border-gray-200 break-words">
+            <h2 class="font-semibold text-lg mb-2 text-gray-800">Token Information:</h2>
+            <p class="text-sm mb-1"><strong class="text-gray-600">Access Token:</strong> <code class="bg-gray-200 text-purple-800 px-2 py-1 rounded-sm text-xs">{{ access_token }}</code></p>
+            <p class="text-sm mb-1"><strong class="text-gray-600">ID Token:</strong> <code class="bg-gray-200 text-purple-800 px-2 py-1 rounded-sm text-xs">{{ id_token }}</code></p>
+            {% if refresh_token %}
+                <p class="text-sm mb-1"><strong class="text-gray-600">Refresh Token:</strong> <code class="bg-gray-200 text-purple-800 px-2 py-1 rounded-sm text-xs">{{ refresh_token }}</code></p>
+            {% endif %}
+            <p class="text-sm mb-1"><strong class="text-gray-600">Expires In:</strong> <span class="text-green-600">{{ expires_in }}</span> seconds</p>
+            <p class="text-sm"><strong class="text-gray-600">Token Type:</strong> <span class="text-blue-600">{{ token_type }}</span></p>
+            <p class="text-sm"><strong class="text-gray-600">Buckets:</strong> <span class="text-blue-600">{{ buckets }}</span></p>
+        </div>
+        <p class="text-gray-600 mt-6 text-center text-sm">You can now use this access token to make authorized API calls to the OAuth provider.</p>
+    </div>
+</body>
+</html>
