@@ -2,9 +2,7 @@ import os
 import requests
 from google.auth import exceptions
 from google.auth import identity_pool
-import json
 from google.cloud import storage
-
 
 from flask import Flask, session, request, render_template
 import config
