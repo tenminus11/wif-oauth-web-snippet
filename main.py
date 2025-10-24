@@ -3,13 +3,12 @@ import requests
 from google.auth import exceptions
 from google.auth import identity_pool
 from google.cloud import storage
-
+from google.api_core.client_options import ClientOptions
+from google.cloud import discoveryengine_v1
+from google.cloud.discoveryengine_v1.types import Query
 from flask import Flask, session, request, render_template
-import config
 from pprint import pprint
 
-# initializing configurations
-conf = config.Config()
 
 app = Flask(__name__)
 # A secret key is required for session management in Flask
@@ -18,22 +17,37 @@ app.secret_key = "12345"
 
 # --- OAuth 2.0 Configuration ---
 # IMPORTANT: Replace these with your actual OAuth provider details
-AUTHORIZATION_BASE_URL = conf.AUTHORIZATION_BASE_URL
-TOKEN_URL = conf.TOKEN_URL
-REDIRECT_URI = conf.REDIRECT_URI
 
-CLIENT_ID = conf.CLIENT_ID  # Your application's client ID
-CLIENT_SECRET = conf.CLIENT_SECRET
-WIF_AUDIENCE = conf.WIF_AUDIENCE
-GCP_PROJECT_NUMBER = conf.GCP_PROJECT_NUMBER
-PROJECT_ID  = conf.PROJECT_ID
-SCOPE = conf.SCOPE
+
+GCP_PROJECT_NUMBER = os.environ["GCP_PROJECT_NUMBER"]
+PROJECT_ID = os.environ["PROJECT_ID"]
+LOCATION = os.environ["LOCATION"]
+ENGINE = os.environ["ENGINE"]
+WORKFORCE_POOL_ID = os.environ["WORKFORCE_POOL_ID"]
+PROVIDER_ID = os.environ["PROVIDER_ID"]
+WIF_AUDIENCE = f"//iam.googleapis.com/locations/global/workforcePools/{WORKFORCE_POOL_ID}/providers/{PROVIDER_ID}"
+
+REDIRECT_URI = "http://localhost:5000/callback"
+
+# Your IDP application details, Entra ID example
+CLIENT_ID = os.environ["CLIENT_ID"]
+CLIENT_SECRET = os.environ["CLIENT_SECRET"]
+TENANT_ID = os.environ["TENANT_ID"]
+OIDC_SCOPE = f"{CLIENT_ID}/openid offline_access"
+AUTHORIZE_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
+TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
 
 
 # DOC https://github.com/googleapis/google-auth-library-python/blob/main/docs/user-guide.rst#accessing-resources-using-a-custom-supplier-with-oidc-or-saml
 
-class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
+client_options = (
+    ClientOptions(api_endpoint=f"{LOCATION}-discoveryengine.googleapis.com")
+    if LOCATION != "global"
+    else None
+)
 
+
+class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
     def __init__(self, id_token):
         self._id_token = id_token
 
@@ -53,11 +67,11 @@ def get_credentials(id_token):
     supplier = CustomSubjectTokenSupplier(id_token)
 
     credentials = identity_pool.Credentials(
-        WIF_AUDIENCE, 
+        WIF_AUDIENCE,
         "urn:ietf:params:oauth:token-type:jwt",
         subject_token_supplier=supplier,
-        scopes=["https://www.googleapis.com/auth/cloud-platform"], 
-        workforce_pool_user_project=GCP_PROJECT_NUMBER
+        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        workforce_pool_user_project=GCP_PROJECT_NUMBER,
     )
     return credentials
 
@@ -78,6 +92,32 @@ def list_gcp_storage_buckets(credentials):
         raise
 
 
+def sample_stream_assist(credentials):
+    # Create a client
+    client = discoveryengine_v1.AssistantServiceClient(
+        credentials=credentials, client_options=client_options
+    )
+
+    # Initialize request argument(s)
+    request = discoveryengine_v1.StreamAssistRequest(
+        name=f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/default_collection/engines/{ENGINE}/assistants/default_assistant",
+        query=Query(text="What can you do?"),
+    )
+
+    # Make the request
+    stream = client.stream_assist(request=request)
+
+    res = ""
+    # Handle the response
+    for response in stream:
+        text = " ".join(
+            [r.grounded_content.content.text for r in response.answer.replies]
+        )
+        print("text", text)
+        res = res + " " + text
+
+    return res
+
 
 @app.route("/")
 def index():
@@ -91,11 +131,11 @@ def index():
 
     # Construct the authorization URL
     auth_url = (
-        f"{AUTHORIZATION_BASE_URL}?"
+        f"{AUTHORIZE_URL}?"
         f"response_type=code&"
         f"client_id={CLIENT_ID}&"
         f"redirect_uri={REDIRECT_URI}&"
-        f"scope={SCOPE}&"
+        f"scope={OIDC_SCOPE}&"
         f"state={state}"
     )
 
@@ -150,12 +190,13 @@ def callback():
         token_type = token_info.get("token_type")
         id_token = token_info.get("id_token")
 
-
         session["access_token"] = access_token
 
         # In a real application, you would store tokens securely (e.g., in a database)
         # and use them to make API calls on behalf of the user.
         gcp_cred = get_credentials(id_token)
+        # myoutput = ", ".join(list_gcp_storage_buckets(gcp_cred))
+        myoutput = sample_stream_assist(gcp_cred)
 
         return render_template(
             "token_display.html",
@@ -164,8 +205,7 @@ def callback():
             refresh_token=refresh_token,
             expires_in=expires_in,
             token_type=token_type,
-            buckets=", ".join(
-                list_gcp_storage_buckets(gcp_cred))
+            myoutput=myoutput,
         )
 
     except requests.exceptions.RequestException as e:
@@ -183,4 +223,3 @@ if __name__ == "__main__":
     # Run the Flask app
     # In a production environment, use a production-ready WSGI server like Gunicorn
     app.run(debug=True, port=5000)
-

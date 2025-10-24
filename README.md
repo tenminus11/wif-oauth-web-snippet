@@ -34,12 +34,15 @@ Before you begin, ensure you have the following:
    - Click "Register".
    - After the app is created, note down the **Application (client) ID** and **Directory (tenant) ID**.
    - Go to "Certificates & secrets" and create a new client secret. Note down the **Value** of the client secret (this will only be shown once).
-   - Go to "API permissions" and ensure "Microsoft Graph" -> "User.Read" is granted. If not, add it.
+   - Go to "API permissions" and ensure "Microsoft Graph" -> "User.Read", "openid", "profile", "offline_access", "email" Delegated is granted. If not, add it.
    - Go to "Expose an API" and click "Add a scope".
    - Set "Application ID URI" to `api://YOUR_CLIENT_ID` (replace `YOUR_CLIENT_ID` with your Application (client) ID).
    - Define a scope name `openid`.
    - Configure consent and state values as needed.
    - Click "Add scope".
+   - Go to "Token configuration" and click "Add optional claim".
+   - Add "email" claim for both "ID", "Access" for the token type.
+   - Add "group" claim for "ID", "Access" & "SAML" for the token type. Make sure Group ID is selected.
 
 
 
