@@ -8,7 +8,7 @@ from google.cloud import discoveryengine_v1
 from google.cloud.discoveryengine_v1.types import Query
 from flask import Flask, session, request, render_template
 from pprint import pprint
-
+import config # comment this
 
 app = Flask(__name__)
 # A secret key is required for session management in Flask
@@ -25,14 +25,16 @@ LOCATION = os.environ["LOCATION"]
 ENGINE = os.environ["ENGINE"]
 WORKFORCE_POOL_ID = os.environ["WORKFORCE_POOL_ID"]
 PROVIDER_ID = os.environ["PROVIDER_ID"]
-WIF_AUDIENCE = f"//iam.googleapis.com/locations/global/workforcePools/{WORKFORCE_POOL_ID}/providers/{PROVIDER_ID}"
-
-REDIRECT_URI = "http://localhost:5000/callback"
 
 # Your IDP application details, Entra ID example
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 TENANT_ID = os.environ["TENANT_ID"]
+
+
+REDIRECT_URI = "http://localhost:5000/callback"
+WIF_AUDIENCE = f"//iam.googleapis.com/locations/global/workforcePools/{WORKFORCE_POOL_ID}/providers/{PROVIDER_ID}"
+
 OIDC_SCOPE = f"{CLIENT_ID}/openid offline_access"
 AUTHORIZE_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
 TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
@@ -49,13 +51,13 @@ client_options = (
 
 class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
     def __init__(self, idp_token):
-        self._id_token = idp_token
+        self._idp_token = idp_token
 
     def get_subject_token(self, context, request):
         audience = context.audience
         subject_token_type = context.subject_token_type
         try:
-            return self.idp_token
+            return self._idp_token
             # Attempt to return the valid subject token of the requested type for the requested audience.
         except Exception as e:
             # If token retrieval fails, raise a refresh error, setting retryable to true if the client should
@@ -85,8 +87,8 @@ def list_gcp_storage_buckets(credentials):
         buckets = client.list_buckets()
         print("Buckets in project:")
         buckets_names = [bucket.name for bucket in buckets]
-        print("\n".join(buckets_names))
-        return buckets_names
+        bucket_all_names = "\n".join(buckets_names)
+        return bucket_all_names
     except Exception as e:
         print(f"Failed to list GCP storage buckets: {e}")
         raise
@@ -197,8 +199,11 @@ def callback():
         # In a real application, you would store tokens securely (e.g., in a database)
         # and use them to make API calls on behalf of the user.
         gcp_cred = get_credentials(access_token)
-        # myoutput = ", ".join(list_gcp_storage_buckets(gcp_cred))
+        
+        myoutput = list_gcp_storage_buckets(gcp_cred)
+        print("gcp bucket", myoutput)
         myoutput = sample_stream_assist(gcp_cred)
+        print("stream assist", myoutput)
 
         return render_template(
             "token_display.html",
@@ -211,14 +216,7 @@ def callback():
         )
 
     except requests.exceptions.RequestException as e:
-        app.logger.error(f"Error exchanging code for token: {e}")
-        return f"Failed to exchange authorization code for token: {e}", 500
-    except ValueError as e:
-        app.logger.error(f"Error parsing token response: {e}")
-        return (
-            f"Failed to parse token response: {e}. Raw response: {response.text if 'response' in locals() else 'N/A'}",
-            500,
-        )
+        app.logger.error(f"Error exchanging code for token: {e}") 
 
 
 if __name__ == "__main__":

@@ -5,16 +5,18 @@ from google.cloud import storage
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1
 from google.cloud.discoveryengine_v1.types import Query
-from config import Config
+import config # comment this 
+
 
 GCP_PROJECT_NUMBER = os.environ["GCP_PROJECT_NUMBER"]
 PROJECT_ID = os.environ["PROJECT_ID"]
 WORKFORCE_POOL_ID = os.environ["WORKFORCE_POOL_ID"]
 PROVIDER_ID = os.environ["PROVIDER_ID"]
-ENTRA_TENANT_ID = os.environ["ENTRA_TENANT_ID"]
 LOCATION = os.environ["LOCATION"]
 ENGINE = os.environ["ENGINE"]
-IDP_TOKEN = os.environ["IDP_TOKEN"] # access_token of entra
+
+IDP_TOKEN = os.environ["IDP_TOKEN"] # access_token of entra fill here
+
 WIF_AUDIENCE = f"//iam.googleapis.com/locations/global/workforcePools/{WORKFORCE_POOL_ID}/providers/{PROVIDER_ID}"
 
 
@@ -62,8 +64,8 @@ def list_gcp_storage_buckets(credentials):
         buckets = client.list_buckets()
         print("Buckets in project:")
         buckets_names = [bucket.name for bucket in buckets]
-        print("\n".join(buckets_names))
-        return buckets_names
+        bucket_all_names = "\n".join(buckets_names)
+        return bucket_all_names
     except Exception as e:
         print(f"Failed to list GCP storage buckets: {e}")
         raise
@@ -79,7 +81,7 @@ def sample_stream_assist(credentials):
     # Initialize request argument(s)
     request = discoveryengine_v1.StreamAssistRequest(
         name=f"projects/{PROJECT_ID}/locations/{LOCATION}/collections/default_collection/engines/{ENGINE}/assistants/default_assistant",
-        query=Query(text="list sharepoint files")
+        query=Query(text="What can you do?")
     )
 
     # Make the request
