@@ -8,6 +8,7 @@ requests = "*"
 google-auth = "*"
 google-cloud-storage = "*"
 flask = "*"
+google-cloud-discoveryengine = "*"
 
 [dev-packages]
 

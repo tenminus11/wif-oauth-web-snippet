@@ -48,14 +48,14 @@ client_options = (
 
 
 class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
-    def __init__(self, id_token):
-        self._id_token = id_token
+    def __init__(self, idp_token):
+        self._id_token = idp_token
 
     def get_subject_token(self, context, request):
         audience = context.audience
         subject_token_type = context.subject_token_type
         try:
-            return self._id_token
+            return self.idp_token
             # Attempt to return the valid subject token of the requested type for the requested audience.
         except Exception as e:
             # If token retrieval fails, raise a refresh error, setting retryable to true if the client should
@@ -63,8 +63,8 @@ class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
             raise exceptions.RefreshError(e, retryable=True)
 
 
-def get_credentials(id_token):
-    supplier = CustomSubjectTokenSupplier(id_token)
+def get_credentials(idp_token):
+    supplier = CustomSubjectTokenSupplier(idp_token)
 
     credentials = identity_pool.Credentials(
         WIF_AUDIENCE,
@@ -130,13 +130,15 @@ def index():
     session["oauth_state"] = state
 
     # Construct the authorization URL
+    # prompt=consent optional
     auth_url = (
         f"{AUTHORIZE_URL}?"
         f"response_type=code&"
         f"client_id={CLIENT_ID}&"
         f"redirect_uri={REDIRECT_URI}&"
         f"scope={OIDC_SCOPE}&"
-        f"state={state}"
+        f"state={state}&"
+        "prompt=consent"
     )
 
     return render_template("index.html", auth_url=auth_url)
@@ -194,7 +196,7 @@ def callback():
 
         # In a real application, you would store tokens securely (e.g., in a database)
         # and use them to make API calls on behalf of the user.
-        gcp_cred = get_credentials(id_token)
+        gcp_cred = get_credentials(access_token)
         # myoutput = ", ".join(list_gcp_storage_buckets(gcp_cred))
         myoutput = sample_stream_assist(gcp_cred)
 

@@ -1,6 +1,7 @@
 import os
 from google.auth import exceptions
 from google.auth import identity_pool
+from google.cloud import storage
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1
 from google.cloud.discoveryengine_v1.types import Query
@@ -13,8 +14,9 @@ PROVIDER_ID = os.environ["PROVIDER_ID"]
 ENTRA_TENANT_ID = os.environ["ENTRA_TENANT_ID"]
 LOCATION = os.environ["LOCATION"]
 ENGINE = os.environ["ENGINE"]
+IDP_TOKEN = os.environ["IDP_TOKEN"] # access_token of entra
 WIF_AUDIENCE = f"//iam.googleapis.com/locations/global/workforcePools/{WORKFORCE_POOL_ID}/providers/{PROVIDER_ID}"
-ID_TOKEN = os.environ["ID_TOKEN"]
+
 
 client_options = (
     ClientOptions(api_endpoint=f"{LOCATION}-discoveryengine.googleapis.com")
@@ -23,14 +25,14 @@ client_options = (
 )
 
 class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
-    def __init__(self, id_token):
-        self._id_token = id_token
+    def __init__(self, idp_token):
+        self._idp_token = idp_token
 
     def get_subject_token(self, context, request):
         audience = context.audience
         subject_token_type = context.subject_token_type
         try:
-            return self._id_token
+            return self._idp_token
             # Attempt to return the valid subject token of the requested type for the requested audience.
         except Exception as e:
             # If token retrieval fails, raise a refresh error, setting retryable to true if the client should
@@ -38,8 +40,8 @@ class CustomSubjectTokenSupplier(identity_pool.SubjectTokenSupplier):
             raise exceptions.RefreshError(e, retryable=True)
 
 
-def get_credentials(id_token):
-    supplier = CustomSubjectTokenSupplier(id_token)
+def get_credentials(idp_token):
+    supplier = CustomSubjectTokenSupplier(idp_token)
 
     credentials = identity_pool.Credentials(
         WIF_AUDIENCE,
@@ -49,6 +51,22 @@ def get_credentials(id_token):
         workforce_pool_user_project=GCP_PROJECT_NUMBER,
     )
     return credentials
+
+
+def list_gcp_storage_buckets(credentials):
+    """
+    Lists GCP storage buckets using the generated credentials.
+    """
+    try:
+        client = storage.Client(credentials=credentials, project=PROJECT_ID)
+        buckets = client.list_buckets()
+        print("Buckets in project:")
+        buckets_names = [bucket.name for bucket in buckets]
+        print("\n".join(buckets_names))
+        return buckets_names
+    except Exception as e:
+        print(f"Failed to list GCP storage buckets: {e}")
+        raise
 
 
 def sample_stream_assist(credentials):
@@ -76,5 +94,9 @@ def sample_stream_assist(credentials):
 
     return res
 
-cred = get_credentials(ID_TOKEN)
-sample_stream_assist(cred)
+cred = get_credentials(IDP_TOKEN)
+
+op = list_gcp_storage_buckets(cred)
+print(op)
+op = sample_stream_assist(cred)
+print(op)
