@@ -2,3 +2,4 @@ requests
 google-auth
 google-cloud-storage
 Flask
+google-cloud-discoveryengine
