@@ -34,7 +34,7 @@ Before you begin, ensure you have the following:
    - Click "Register".
    - After the app is created, note down the **Application (client) ID** and **Directory (tenant) ID**.
    - Go to "Certificates & secrets" and create a new client secret. Note down the **Value** of the client secret (this will only be shown once).
-   - Go to "API permissions" and ensure "Microsoft Graph" -> "User.Read", "openid", "profile", "offline_access", "email" Delegated is granted. If not, add it.
+   - Go to "API permissions" and ensure "Microsoft Graph" -> "User.Read", "openid", "profile", "offline_access", "email" Delegated is granted. Add User.Read.All, GroupMember.Read.All application permission as well for scalable groups.
    - Go to "Expose an API" and click "Add a scope".
    - Set "Application ID URI" to `api://YOUR_CLIENT_ID` (replace `YOUR_CLIENT_ID` with your Application (client) ID).
    - Define a scope name `openid`.
@@ -43,14 +43,15 @@ Before you begin, ensure you have the following:
    - Go to "Token configuration" and click "Add optional claim".
    - Add "email" claim for both "ID", "Access" for the token type.
    - Add "group" claim for "ID", "Access" & "SAML" for the token type. Make sure Group ID is selected.
-
+   - In Manage -> Manifest change `requestedAccessTokenVersion` OR `accessTokenAcceptedVersion` value to `2`.
 
 
 2. **Configure Workforce Identity Federation & IAM access**:
    - Follow the instructions in the [Google Cloud documentation](https://cloud.google.com/iam/docs/workforce-sign-in-microsoft-entra-id) to set up a Workforce Identity Pool and Provider.
    - Grant the necessary IAM roles to user principal to test access \
      Example : Grant the `Storage Bucket Viewer` role to the workforce pool user on the bucket you want to access. \
-     `gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="principalSet://iam.googleapis.com/locations/global/workforcePools/YOUR_WORKFORCE_POOL_ID/subject/YOUR_USER_ID" --role="roles/storage.bucketViewer"`
+     `gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="principalSet://iam.googleapis.com/locations/global/workforcePools/YOUR_WORKFORCE_POOL_ID/*" --role="roles/storage.bucketViewer"`
+      `gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="principalSet://iam.googleapis.com/locations/global/workforcePools/YOUR_WORKFORCE_POOL_ID/*" --role="roles/discoveryengine.user"`
 
   
 
