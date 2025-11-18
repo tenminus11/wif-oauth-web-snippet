@@ -49,8 +49,9 @@ Before you begin, ensure you have the following:
 2. **Configure Workforce Identity Federation & IAM access**:
    - Follow the instructions in the [Google Cloud documentation](https://cloud.google.com/iam/docs/workforce-sign-in-microsoft-entra-id) to set up a Workforce Identity Pool and Provider.
    - Grant the necessary IAM roles to user principal to test access \
-     Example : Grant the `Storage Bucket Viewer` role to the workforce pool user on the bucket you want to access. \
-     `gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="principalSet://iam.googleapis.com/locations/global/workforcePools/YOUR_WORKFORCE_POOL_ID/*" --role="roles/storage.bucketViewer"`
+     Example : Grant the `Storage Bucket Viewer` & `Discovery Engine User` role to the workforce pool. \
+     `gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="principalSet://iam.googleapis.com/locations/global/workforcePools/YOUR_WORKFORCE_POOL_ID/*" --role="roles/storage.bucketViewer"` \
+
       `gcloud projects add-iam-policy-binding YOUR_PROJECT_ID --member="principalSet://iam.googleapis.com/locations/global/workforcePools/YOUR_WORKFORCE_POOL_ID/*" --role="roles/discoveryengine.user"`
 
   
